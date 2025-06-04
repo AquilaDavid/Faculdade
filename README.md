@@ -1,6 +1,6 @@
 # Faculdade
 
-```plantuml
+```Diagrama de Classes
 @startuml
 class Cliente {
   - nome: String
@@ -47,3 +47,43 @@ Cliente "1" -- "1" Aluguel
 Veiculo "1" -- "1" Aluguel
 @enduml
 ```
+
+
+
+```Diagrama de Objetos
+@startuml
+object ClienteJoao {
+  nome = "João Silva"
+  cpf = "123.456.789-00"
+}
+
+object CartaoJoao {
+  numero = "1111-2222-3333-4444"
+  validade = "12/2026"
+  aprovado = true
+}
+
+object VeiculoFordKa {
+  placa = "ABC-1234"
+  cor = "Prata"
+  modelo = "Ford Ka"
+  ano = 2020
+  precoPorDia = 100.00
+  disponivel = false
+}
+
+object AluguelAtivo {
+  dataInicio = "01/06/2025"
+  diasAlugados = 5
+  precoTotal = 500.00
+  dataDevolucao = "06/06/2025"
+  multa = 0.00
+  status = "Ativo"
+}
+
+ClienteJoao --> CartaoJoao
+ClienteJoao --> AluguelAtivo
+AluguelAtivo --> VeiculoFordKa
+@enduml
+```
+
