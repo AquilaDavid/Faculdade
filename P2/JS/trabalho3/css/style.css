@@ -1,0 +1,21 @@
+body {
+    margin: 0; /* Remove as margens padrão ao redor do corpo da página. */
+    padding: 0; /* Remove o preenchimento padrão dentro do corpo da página. */
+    display: flex; /* Define o modelo de layout do corpo como flexível. */
+    flex-direction: column; /* Organiza os itens dentro do corpo em uma coluna vertical. */
+    align-items: center; /* Alinha os itens ao centro horizontalmente dentro do corpo. */
+    justify-content: center; /* Alinha os itens ao centro verticalmente dentro do corpo. */
+}
+
+.principal{
+    text-align: center;
+    font-size: large;
+}
+
+h1{
+    padding-top: 40%;
+}
+p{
+    display: flex;
+    text-align: center;
+}
