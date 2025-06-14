@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Atividade 1 - String</title>
+</head>
+<body>
+    <h1>Bem Vindo!</h1> <!-- Cabeçalho principal da página, com saudação de boas-vindas. -->
+    <h2>A seguir estará as chamativas das funções criadas</h2> <!-- Subcabeçalho explicando o que será mostrado em seguida. -->
+    <div id="trabalho"></div> <!-- Div vazia com o id "trabalho", que será preenchida dinamicamente pelo JavaScript. -->
+    <h1>Fim das Questões</h1> <!-- Cabeçalho indicando o fim das questões ou conteúdo principal. -->
+    
+    <!-- Inclusão de arquivos JavaScript externos que contêm funções usadas na página. -->
+    <script src="../js/q1.js"></script> <!-- Adiciona o script JavaScript para a primeira questão. -->
+    <script src="../js/q2.js"></script> <!-- Adiciona o script JavaScript para a segunda questão. -->
+    <script src="../js/q3.js"></script> <!-- Adiciona o script JavaScript para a terceira questão. -->
+    <script src="../js/q4.js"></script> <!-- Adiciona o script JavaScript para a quarta questão. -->
+    <script src="../js/q5.js"></script> <!-- Adiciona o script JavaScript para a quinta questão. -->
+    <script>
+        // Código JS para exibir os resultados na página.
+        const questoes = document.getElementById('trabalho');
+        // Adiciona os resultados das funções de manipulação de strings na div de trabalho
+        questoes.innerHTML = `<h2 class = "n_questao">1° Questão</h2>
+            <h3 class = "descrição"> Escreva uma função em Javascript para verificar se uma variável é do tipo String ou não. </h3>
+            <h4 class = "respostas"> Resposta: </h4>
+            <div class="questoes"> <strong>Chamda da função:</strong> console.log(isString('w3resource')); <br/> <strong>Retorno da função:</strong> ${isString('w3resource')} </div>
+            <br>
+            <div class="questoes"> <strong>Chamda da função:</strong> console.log(isString([1, 2, 4, 0])); <br/> <strong>Retorno da função:</strong> ${isString([1, 2, 4, 0])} </div>
+            
+            <h2 class = "n_questao">2° Questão</h2>
+            <h3 class = "descrição"> Escreva uma função em Javascript para verificar se uma String está em branco ou vazia ou não.</h3>
+            <h4 class = "respostas"> Resposta: </h4>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(isEmpty("")); <br/> <strong>Retorno da função:</strong> ${isEmpty("")} </div>
+            <br>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(isEmpty("abc")); <br/> <strong>Retorno da função:</strong> ${isEmpty("abc")} </div>
+
+            <h2 class = "n_questao">3° Questão</h2>
+            <h3 class = "descrição"> Escreva uma função em Javascript para dividir uma string (espaços vazios) e convertê-la em um array de palavras.</h3>
+            <h4 class = "respostas"> Resposta: </h4>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(toArray("Round Robin")); <br/> <strong>Retorno da função:</strong> ${toArray("[Round Robin]")} </div>
+            <br>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(toArray("Nome Composto")); <br/> <strong>Retorno da função:</strong> ${toArray("[Nome Composto]")} </div>
+
+            <h2 class = "n_questao">4° Questão</h2>
+            <h3 class = "descrição"> Escreva uma função em Javascript para extrair um número especificado de caracteres de uma String partindo do início.</h3>
+            <h4 class = "respostas"> Resposta: </h4>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(initCut("Round Robin",4)); <br/> <strong>Retorno da função:</strong> ${initCut("Round Robin",4)} </div>
+            <br>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(initCut("Formula de baskara",8)); <br/> <strong>Retorno da função:</strong> ${initCut("Formula de baskara",8)} </div>
+
+            <h2 class = "n_questao">5° Questão</h2>
+            <h3 class = "descrição"> Escreva uma função em Javascript para converter uma string em formato abreviado.</h3>
+            <h4 class = "respostas"> Resposta: </h4>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(abbrevName("Robin Hood")); <br/> <strong>Retorno da função:</strong> ${abbrevName("Robin Hood")} </div>
+            <br>
+            <div class="questoes"> <strong>Chamda da função:</strong>  console.log(abbrevName("Francisco Oliveira")); <br/> <strong>Retorno da função:</strong> ${abbrevName("Francisco Oliveira")} </div>
+            `
+
+    </script>
+</body>
+</html>
