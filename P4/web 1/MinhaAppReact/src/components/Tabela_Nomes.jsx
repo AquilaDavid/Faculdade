@@ -2,6 +2,7 @@ import { Button } from 'react-bootstrap';
 import Table from 'react-bootstrap/Table';
 import React, { useState } from 'react';
 import pessoasDataBases from '../../datasets/pessoas';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 
