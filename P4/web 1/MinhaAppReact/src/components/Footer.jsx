@@ -8,6 +8,8 @@ import {
   NavLink,
 } from "react-bootstrap";
 
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 function Footer() {
   return (
     <footer>

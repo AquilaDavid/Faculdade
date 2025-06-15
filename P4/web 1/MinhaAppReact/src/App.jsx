@@ -1,17 +1,24 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./layout/Layout";
+import Home from "./pages/Home";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-import 'bootstrap/dist/css/bootstrap.min.css'
-import Header from './components/Header';
-import Tabela_Nomes from './components/Tabela_Nomes';
-import Footer from './components/Footer';
+import Contato from "./pages/Contato";
 
 
-function App(){
+
+function App() {
   return (
-    <div>
-      <Header />
-      <Tabela_Nomes />
-      <Footer/>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="contato" element={<Contato />} />
+          <Route path="Home" element={<Home />} />
+          <Route path="Home" element={<Home />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
