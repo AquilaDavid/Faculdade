@@ -16,6 +16,7 @@ import EditContact, {
 } from "./routes/edit";
 import { action as destroyAction } from "./routes/destroy";
 import Index from "./routes/index";
+import NovaAba from "./routes/nova_aba";
 
 const router = createBrowserRouter([
   {
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
             action: destroyAction,
             errorElement: <div>Oops! There was an error.</div>,
           },
+          {
+            path: 'NovaAba',
+            element: <NovaAba/>
+          }
         ],
       },
     ],

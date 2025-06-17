@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { getContacts, createContact } from "../contacts";
 import { useEffect } from "react";
+import { Button } from "bootstrap";
 
 export async function action() {
   const contact = await createContact();
@@ -61,6 +62,9 @@ export default function Root() {
           <Form method="post">
             <button type="submit">New</button>
           </Form>
+          <Link to="/NovaAba">
+            <button type="button">Mais informações</button>
+          </Link>
         </div>
         <nav>
           {contacts.length ? (
