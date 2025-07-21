@@ -3,7 +3,8 @@ import Layout from "./layout/Layout";
 import Home from "./pages/Home";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import Contato from "./pages/Contato";
+
+import InstituicaoEnsino from "./pages/InstituicaoEnsino";
 
 
 
@@ -13,9 +14,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="contato" element={<Contato />} />
           <Route path="Home" element={<Home />} />
-          <Route path="Home" element={<Home />} />
+          <Route path="/instituicaoEnsino" element={<InstituicaoEnsino />} />
         </Route>
       </Routes>
     </BrowserRouter>
