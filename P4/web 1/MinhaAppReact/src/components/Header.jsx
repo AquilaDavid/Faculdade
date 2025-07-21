@@ -1,26 +1,20 @@
-import { Navbar, Nav, Container } from 'react-bootstrap';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Contato from '../pages/Contato';
-import { NavLink } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { Navbar, Nav, Container } from "react-bootstrap";
 
-function Header() {
+const Header = () => {
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
-      <Container>
-        <Navbar.Brand as = {NavLink} to = "/Home">MinhaAppReact</Navbar.Brand>
-        <Navbar.Toggle aria-controls="navbar-nav" />
-        <Navbar.Collapse id="navbar-nav">
-          <Nav className="ms-auto">
-            <Nav.Link as={NavLink} to = "/Home">Início</Nav.Link>
-            <Nav.Link href="#sobre">Sobre</Nav.Link>
-            
-            <Nav.Link as={NavLink} to= "/Contato">Contato</Nav.Link>
-
+    <header>
+      <Navbar bg="primary" data-bs-theme="dark">
+        <Container>
+          <Navbar.Brand as={Link} to="/">Censo Escolar</Navbar.Brand>
+          <Nav className="me-auto">
+            <Nav.Link as={Link} to="/">Home</Nav.Link>
+            <Nav.Link as={Link} to="/instituicaoEnsino">Instituicao Ensino</Nav.Link>
           </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+        </Container>
+      </Navbar>
+    </header>
   );
-}
+};
 
 export default Header;
