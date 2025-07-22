@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from "react";
 import {
   Button,
   Col,
@@ -7,69 +7,68 @@ import {
   Modal,
   Row,
   Table,
-} from 'react-bootstrap';
-import axios from 'axios';
-import instituicoesEnsino from '../../datasets/cencoescolar';
-import './InstituicaoEnsino.css';
+} from "react-bootstrap";
+import instituicoesEnsino from "../../datasets/cencoescolar";
+import ufs from "../../datasets/estados";
+import "./InstituicaoEnsino.css";
 
-const InstituicaoEnsino = () => {
+const Instituicao_Ensino = () => {
   const [instituicaoEnsino, setInstituicaoEnsino] = useState({
-    codigo: '',
-    nome: '',
-    uf: '',
-    municipio: '',
-    regiao: '',
+    codigo: "",
+    nome: "",
+    uf: "",
+    municipio: "",
+    regiao: "",
   });
 
-  const [ufs, setUfs] = useState([]);
-  const [municipios, setMunicipios] = useState([]);
   const [show, setShow] = useState(false);
 
   const handleShow = () => setShow(!show);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setInstituicaoEnsino((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    console.log(name, value);
+
+    setInstituicaoEnsino({ ...instituicaoEnsino, [name]: value });
+    console.log(instituicaoEnsino);
   };
 
-  // Buscar UFs ao carregar o componente
-  useEffect(() => {
-    axios
-      .get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
-      .then((res) => {
-        const estadosOrdenados = res.data.sort((a, b) =>
-          a.sigla.localeCompare(b.sigla)
-        );
-        setUfs(estadosOrdenados);
-      });
-  }, []);
+  // Parte dos dados dos estados e região
 
-  // Buscar municípios quando UF mudar
-  useEffect(() => {
-    if (instituicaoEnsino.uf) {
-      axios
-        .get(
-          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${instituicaoEnsino.uf}/municipios`
-        )
-        .then((res) => setMunicipios(res.data));
+  const [formData, setFormData] = useState({
+    uf: "",
+    municipio: "",
+    regiao: "",
+  });
 
-      const estadoSelecionado = ufs.find(
-        (uf) => uf.sigla === instituicaoEnsino.uf
-      );
-      if (estadoSelecionado) {
-        setInstituicaoEnsino((prev) => ({
-          ...prev,
-          regiao: estadoSelecionado.regiao.nome,
-        }));
-      }
+  const [municipios, setMunicipios] = useState([]);
+
+  const handleUFChange = (e) => {
+    const siglaUF = e.target.value;
+    const ufSelecionada = ufs.find((uf) => uf.sigla === siglaUF);
+
+    setFormData({
+      ...formData,
+      uf: siglaUF,
+      regiao: ufSelecionada?.regiao || "",
+      municipio: "",
+    });
+
+    if (siglaUF) {
+      fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${siglaUF}/municipios`
+      )
+        .then((res) => res.json())
+        .then((data) => setMunicipios(data))
+        .catch((err) => console.error("Erro ao buscar municípios:", err));
     } else {
       setMunicipios([]);
-      setInstituicaoEnsino((prev) => ({ ...prev, regiao: '' }));
     }
-  }, [instituicaoEnsino.uf, ufs]);
+  };
+
+  const handleChange_ = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   return (
     <Container className="mt-2">
@@ -78,7 +77,7 @@ const InstituicaoEnsino = () => {
         <Col sm={4}>
           <Button
             variant="primary"
-            style={{ float: 'right' }}
+            style={{ float: "right" }}
             onClick={handleShow}
           >
             +
@@ -102,19 +101,21 @@ const InstituicaoEnsino = () => {
               </tr>
             </thead>
             <tbody>
-              {instituicoesEnsino.map((instituicao, i) => (
-                <tr key={i}>
-                  <td>{instituicao.codigo}</td>
-                  <td>{instituicao.nome}</td>
-                  <td>{instituicao.no_uf}</td>
-                  <td>{instituicao.no_municipio}</td>
-                  <td>{instituicao.no_regiao}</td>
-                  <td>{instituicao.qt_mat_bas}</td>
-                  <td>{instituicao.qt_mat_prof}</td>
-                  <td>{instituicao.qt_mat_eja}</td>
-                  <td>{instituicao.qt_mat_esp}</td>
-                </tr>
-              ))}
+              {instituicoesEnsino.map((instituicaoEnsino, i) => {
+                return (
+                  <tr key={i}>
+                    <td>{instituicaoEnsino.codigo}</td>
+                    <td>{instituicaoEnsino.nome}</td>
+                    <td>{instituicaoEnsino.no_uf}</td>
+                    <td>{instituicaoEnsino.no_municipio}</td>
+                    <td>{instituicaoEnsino.no_regiao}</td>
+                    <td>{instituicaoEnsino.qt_mat_bas}</td>
+                    <td>{instituicaoEnsino.qt_mat_prof}</td>
+                    <td>{instituicaoEnsino.qt_mat_eja}</td>
+                    <td>{instituicaoEnsino.qt_mat_esp}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
         </Col>
@@ -128,7 +129,7 @@ const InstituicaoEnsino = () => {
           <Modal.Body>
             <Row>
               <Col sm={3}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formGroupEmail">
                   <Form.Label>Código</Form.Label>
                   <Form.Control
                     type="text"
@@ -141,7 +142,7 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
               <Col sm={9}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formGroupEmail">
                   <Form.Label>Nome</Form.Label>
                   <Form.Control
                     type="text"
@@ -156,33 +157,33 @@ const InstituicaoEnsino = () => {
             </Row>
             <Row>
               <Col>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formUF">
                   <Form.Label>UF</Form.Label>
                   <Form.Select
                     name="uf"
-                    value={instituicaoEnsino.uf}
-                    onChange={handleChange}
+                    value={formData.uf}
+                    onChange={handleUFChange}
                     required
                   >
-                    <option value="">Selecione...</option>
+                    <option value="">Selecione uma UF</option>
                     {ufs.map((uf) => (
-                      <option key={uf.id} value={uf.sigla}>
-                        {uf.sigla}
+                      <option key={uf.sigla} value={uf.sigla}>
+                        {uf.estado} ({uf.sigla})
                       </option>
                     ))}
                   </Form.Select>
                 </Form.Group>
               </Col>
               <Col>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formMunicipio">
                   <Form.Label>Município</Form.Label>
                   <Form.Select
                     name="municipio"
-                    value={instituicaoEnsino.municipio}
-                    onChange={handleChange}
+                    value={formData.municipio}
+                    onChange={handleChange_}
                     required
                   >
-                    <option value="">Selecione...</option>
+                    <option value="">Selecione um município</option>
                     {municipios.map((m) => (
                       <option key={m.id} value={m.nome}>
                         {m.nome}
@@ -192,13 +193,12 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
               <Col>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formRegiao">
                   <Form.Label>Região</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Região"
                     name="regiao"
-                    value={instituicaoEnsino.regiao}
+                    value={formData.regiao}
                     readOnly
                   />
                 </Form.Group>
@@ -207,7 +207,9 @@ const InstituicaoEnsino = () => {
 
             <Button
               variant="warning"
-              onClick={(e) => console.log(instituicaoEnsino)}
+              onClick={(e) => {
+                console.log(instituicaoEnsino);
+              }}
             >
               Exibir
             </Button>
@@ -227,4 +229,4 @@ const InstituicaoEnsino = () => {
   );
 };
 
-export default InstituicaoEnsino;
+export default Instituicao_Ensino;
