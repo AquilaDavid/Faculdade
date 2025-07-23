@@ -9,8 +9,7 @@ import {
   Table,
 } from "react-bootstrap";
 import instituicoesEnsino from "../../datasets/cencoescolar";
-import ufs from "../../datasets/estados";
-import municipiosData from "../../datasets/estados"; // JSON local
+import ufs from "../../datasets/estados"; 
 import "./InstituicaoEnsino.css";
 
 const Instituicao_Ensino = () => {
@@ -22,31 +21,29 @@ const Instituicao_Ensino = () => {
     regiao: "",
   });
 
+  const [municipiosFiltrados, setMunicipiosFiltrados] = useState([]);
   const [show, setShow] = useState(false);
 
   const handleShow = () => setShow(!show);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setInstituicaoEnsino({ ...instituicaoEnsino, [name]: value });
-  };
+    let updated = { ...instituicaoEnsino, [name]: value };
 
-  const handleUFChange = (e) => {
-    const siglaUF = e.target.value;
-    const ufSelecionada = ufs.find((uf) => uf.sigla === siglaUF);
-    setInstituicaoEnsino({
-      ...instituicaoEnsino,
-      uf: siglaUF,
-      regiao: ufSelecionada?.regiao || "",
-      municipio: "",
-    });
-  };
+    if (name === "uf") {
+      const estadoSelecionado = ufs.find((e) => e.sigla === value);
 
-  const handleMunicipioChange = (e) => {
-    setInstituicaoEnsino({
-      ...instituicaoEnsino,
-      municipio: e.target.value,
-    });
+      if (estadoSelecionado) {
+        updated.regiao = estadoSelecionado.regiao;
+        setMunicipiosFiltrados(estadoSelecionado.cidades);
+        updated.municipio = "";
+      } else {
+        updated.regiao = "";
+        setMunicipiosFiltrados([]);
+      }
+    }
+
+    setInstituicaoEnsino(updated);
   };
 
   return (
@@ -106,7 +103,7 @@ const Instituicao_Ensino = () => {
           <Modal.Body>
             <Row>
               <Col sm={3}>
-                <Form.Group className="mb-3" controlId="formGroupCodigo">
+                <Form.Group className="mb-3">
                   <Form.Label>Código</Form.Label>
                   <Form.Control
                     type="text"
@@ -119,7 +116,7 @@ const Instituicao_Ensino = () => {
                 </Form.Group>
               </Col>
               <Col sm={9}>
-                <Form.Group className="mb-3" controlId="formGroupNome">
+                <Form.Group className="mb-3">
                   <Form.Label>Nome</Form.Label>
                   <Form.Control
                     type="text"
@@ -134,50 +131,51 @@ const Instituicao_Ensino = () => {
             </Row>
             <Row>
               <Col>
-                <Form.Group className="mb-3" controlId="formUF">
+                <Form.Group className="mb-3">
                   <Form.Label>UF</Form.Label>
                   <Form.Select
                     name="uf"
                     value={instituicaoEnsino.uf}
-                    onChange={handleUFChange}
+                    onChange={handleChange}
                     required
                   >
-                    <option value="">Selecione uma UF</option>
-                    {ufs.map((uf) => (
-                      <option key={uf.sigla} value={uf.sigla}>
-                        {uf.estado} ({uf.sigla})
+                    <option value="">Selecione a UF</option>
+                    {ufs.map((estado) => (
+                      <option key={estado.sigla} value={estado.sigla}>
+                        {estado.nome}
                       </option>
                     ))}
                   </Form.Select>
                 </Form.Group>
               </Col>
               <Col>
-                <Form.Group className="mb-3" controlId="formMunicipio">
+                <Form.Group className="mb-3">
                   <Form.Label>Município</Form.Label>
                   <Form.Select
                     name="municipio"
                     value={instituicaoEnsino.municipio}
-                    onChange={handleMunicipioChange}
+                    onChange={handleChange}
                     required
-                    disabled={!instituicaoEnsino.uf}
+                    disabled={municipiosFiltrados.length === 0}
                   >
-                    <option value="">Selecione um município</option>
-                    {(municipiosData[instituicaoEnsino.uf] || []).map((m, i) => (
-                      <option key={i} value={m}>
-                        {m}
+                    <option value="">Selecione o município</option>
+                    {municipiosFiltrados.map((cidade, i) => (
+                      <option key={i} value={cidade}>
+                        {cidade}
                       </option>
                     ))}
                   </Form.Select>
                 </Form.Group>
               </Col>
               <Col>
-                <Form.Group className="mb-3" controlId="formRegiao">
+                <Form.Group className="mb-3">
                   <Form.Label>Região</Form.Label>
                   <Form.Control
                     type="text"
                     name="regiao"
                     value={instituicaoEnsino.regiao}
                     readOnly
+                    disabled
                   />
                 </Form.Group>
               </Col>
@@ -185,7 +183,9 @@ const Instituicao_Ensino = () => {
 
             <Button
               variant="warning"
-              onClick={() => console.log(instituicaoEnsino)}
+              onClick={() => {
+                console.log(instituicaoEnsino);
+              }}
             >
               Exibir
             </Button>
