@@ -12,8 +12,8 @@ public class BufferConcorrente {
     public static void main(String[] args) throws InterruptedException {
         for (int i = 0; i < 5; i++) locks[i] = new ReentrantLock();
 
-        int numProdutores = 3; 
-        int numConsumidores = 3; 
+        int numProdutores = 5; 
+        int numConsumidores = 2; 
 
         Thread[] produtores = new Thread[numProdutores];
         Thread[] consumidores = new Thread[numConsumidores];
