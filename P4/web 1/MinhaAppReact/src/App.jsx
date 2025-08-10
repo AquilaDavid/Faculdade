@@ -1,12 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./layout/Layout";
-import Home from "./pages/Home";
-import 'bootstrap/dist/css/bootstrap.min.css';
-
-
-import Instituicao_Ensino from "./pages/Instituicao_Ensino";
-
-
+import { BrowserRouter, Route, Routes } from 'react-router';
+import './App.css';
+import Layout from './layouts/Layout';
+import Home from './pages/Home';
+import InstituicaoEnsino from './pages/InstituicaoEnsino';
+import NoPage from './pages/NoPage';
 
 function App() {
   return (
@@ -14,8 +11,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="Home" element={<Home />} />
-          <Route path="/instituicaoEnsino" element={<Instituicao_Ensino />} />
+          <Route path="instituicaoensino" element={<InstituicaoEnsino />} />
+          <Route path="*" element={<NoPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
