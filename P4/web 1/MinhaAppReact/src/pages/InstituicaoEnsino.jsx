@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Button,
   Col,
@@ -7,69 +7,90 @@ import {
   Modal,
   Row,
   Table,
-} from 'react-bootstrap';
-import axios from 'axios';
-import instituicoesEnsino from '../../datasets/cencoescolar';
-import './InstituicaoEnsino.css';
+} from "react-bootstrap";
+import { ToastContainer, toast } from "react-toastify";
+import instituicoesEnsinoDataset from "../datasets/censoescolar";
+import "./InstituicaoEnsino.css";
+import { estadosDataset, getEstadoByCodigo } from "../datasets/estados";
+import {
+  getMunicipiosByEstado,
+  getMunicipioByCodigo,
+} from "../datasets/cidades";
 
 const InstituicaoEnsino = () => {
+  const [instituicoesEnsino, setInstituicoesEnsino] = useState([]);
+
+  useEffect(() => {
+    const dadosSalvos = localStorage.getItem("instituicoesEnsino");
+    if (dadosSalvos) {
+      setInstituicoesEnsino(JSON.parse(dadosSalvos));
+    } else {
+      setInstituicoesEnsino([...instituicoesEnsinoDataset]);
+    }
+  }, []);
+
   const [instituicaoEnsino, setInstituicaoEnsino] = useState({
-    codigo: '',
-    nome: '',
-    uf: '',
-    municipio: '',
-    regiao: '',
+    codigo: "",
+    nome: "",
+    estado: { codigo: "", nome: "" },
+    municipio: { codigo: "", nome: "" },
+    regiao: { codigo: "", nome: "" },
   });
 
-  const [ufs, setUfs] = useState([]);
-  const [municipios, setMunicipios] = useState([]);
+  let [estados, setEstados] = useState(estadosDataset);
+  let [municipios, setMunicipios] = useState([]);
+
   const [show, setShow] = useState(false);
 
   const handleShow = () => setShow(!show);
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setInstituicaoEnsino((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    // Adicionar os dados na tabela.
+    const novaLista = [...instituicoesEnsino, instituicaoEnsino];
+
+    // Adicionar os dados no LocalStorage.
+    setInstituicoesEnsino(novaLista);
+    localStorage.setItem("instituicoesEnsino", JSON.stringify(novaLista));
+
+    // Fechar o modal.
+    handleShow();
+
+    // Exibir o Toast.
+    toast("Instituição inserida com sucesso!");
   };
 
-  // Buscar UFs ao carregar o componente
-  useEffect(() => {
-    axios
-      .get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
-      .then((res) => {
-        const estadosOrdenados = res.data.sort((a, b) =>
-          a.sigla.localeCompare(b.sigla)
-        );
-        setUfs(estadosOrdenados);
-      });
-  }, []);
+  const handleChangeMunicipio = (event) => {
+    const { value } = event.target;
+    const codigo = value;
+    let municipio = getMunicipioByCodigo(codigo);
 
-  // Buscar municípios quando UF mudar
-  useEffect(() => {
-    if (instituicaoEnsino.uf) {
-      axios
-        .get(
-          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${instituicaoEnsino.uf}/municipios`
-        )
-        .then((res) => setMunicipios(res.data));
+    setInstituicaoEnsino({ ...instituicaoEnsino, municipio: municipio });
+  };
 
-      const estadoSelecionado = ufs.find(
-        (uf) => uf.sigla === instituicaoEnsino.uf
-      );
-      if (estadoSelecionado) {
-        setInstituicaoEnsino((prev) => ({
-          ...prev,
-          regiao: estadoSelecionado.regiao.nome,
-        }));
-      }
-    } else {
-      setMunicipios([]);
-      setInstituicaoEnsino((prev) => ({ ...prev, regiao: '' }));
-    }
-  }, [instituicaoEnsino.uf, ufs]);
+  const handleChangeEstado = (event) => {
+    const { value } = event.target;
+    const codigo = value;
+    let estado = getEstadoByCodigo(codigo);
+
+    // Região.
+    // if (estado != null) {
+    //   let regiao = estado?.regiao;
+    // }
+    let regiao = estado?.regiao;
+
+    // Atualizar a instituição de ensino com estado e regiao selecionado.
+    setInstituicaoEnsino({ ...instituicaoEnsino, estado, regiao });
+
+    // Filtrar as cidades.
+    let municipiosSelecionados = getMunicipiosByEstado(codigo);
+    setMunicipios([...municipiosSelecionados]);
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setInstituicaoEnsino({ ...instituicaoEnsino, [name]: value });
+  };
 
   return (
     <Container className="mt-2">
@@ -78,13 +99,14 @@ const InstituicaoEnsino = () => {
         <Col sm={4}>
           <Button
             variant="primary"
-            style={{ float: 'right' }}
+            style={{ float: "right" }}
             onClick={handleShow}
           >
             +
           </Button>
         </Col>
       </Row>
+      {/* Tabela */}
       <Row className="mt-2">
         <Col>
           <Table striped bordered hover size="sm">
@@ -102,33 +124,35 @@ const InstituicaoEnsino = () => {
               </tr>
             </thead>
             <tbody>
-              {instituicoesEnsino.map((instituicao, i) => (
-                <tr key={i}>
-                  <td>{instituicao.codigo}</td>
-                  <td>{instituicao.nome}</td>
-                  <td>{instituicao.no_uf}</td>
-                  <td>{instituicao.no_municipio}</td>
-                  <td>{instituicao.no_regiao}</td>
-                  <td>{instituicao.qt_mat_bas}</td>
-                  <td>{instituicao.qt_mat_prof}</td>
-                  <td>{instituicao.qt_mat_eja}</td>
-                  <td>{instituicao.qt_mat_esp}</td>
-                </tr>
-              ))}
+              {instituicoesEnsino.map((instituicaoEnsino, i) => {
+                return (
+                  <tr key={i}>
+                    <td>{instituicaoEnsino.codigo}</td>
+                    <td>{instituicaoEnsino.nome}</td>
+                    <td>{instituicaoEnsino.estado.nome}</td>
+                    <td>{instituicaoEnsino.municipio.nome}</td>
+                    <td>{instituicaoEnsino.regiao.nome}</td>
+                    <td>{instituicaoEnsino.qt_mat_bas}</td>
+                    <td>{instituicaoEnsino.qt_mat_prof}</td>
+                    <td>{instituicaoEnsino.qt_mat_eja}</td>
+                    <td>{instituicaoEnsino.qt_mat_esp}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
         </Col>
       </Row>
-
+      {/* Modal */}
       <Modal show={show} onHide={handleShow} dialogClassName="modal-80w">
         <Modal.Header closeButton>
           <Modal.Title>Instituição de Ensino</Modal.Title>
         </Modal.Header>
-        <Form>
+        <Form onSubmit={handleSubmit}>
           <Modal.Body>
             <Row>
               <Col sm={3}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formGroupEmail">
                   <Form.Label>Código</Form.Label>
                   <Form.Control
                     type="text"
@@ -141,7 +165,7 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
               <Col sm={9}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formGroupEmail">
                   <Form.Label>Nome</Form.Label>
                   <Form.Control
                     type="text"
@@ -156,73 +180,121 @@ const InstituicaoEnsino = () => {
             </Row>
             <Row>
               <Col>
-                <Form.Group className="mb-3">
-                  <Form.Label>UF</Form.Label>
-                  <Form.Select
-                    name="uf"
-                    value={instituicaoEnsino.uf}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Selecione...</option>
-                    {ufs.map((uf) => (
-                      <option key={uf.id} value={uf.sigla}>
-                        {uf.sigla}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+                <label htmlFor="estado">Estado</label>
+                <select
+                  id="estado"
+                  name="estado"
+                  value={instituicaoEnsino.estado.codigo}
+                  onChange={handleChangeEstado}
+                >
+                  <option value="">-</option>
+                  {estados.map((estado, i) => (
+                    <option key={i} value={estado.codigo}>
+                      {estado.nome}
+                    </option>
+                  ))}
+                </select>
               </Col>
               <Col>
-                <Form.Group className="mb-3">
-                  <Form.Label>Município</Form.Label>
-                  <Form.Select
-                    name="municipio"
-                    value={instituicaoEnsino.municipio}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Selecione...</option>
-                    {municipios.map((m) => (
-                      <option key={m.id} value={m.nome}>
-                        {m.nome}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+                <label htmlFor="municipio">Municípios</label>
+                <select
+                  id="municipio"
+                  name="municipio"
+                  value={instituicaoEnsino.municipio.codigo}
+                  onChange={handleChangeMunicipio}
+                >
+                  <option value="">-</option>
+                  {municipios.map((municipio, i) => (
+                    <option key={i} value={String(municipio.codigo)}>
+                      {municipio.nome}
+                    </option>
+                  ))}
+                </select>
               </Col>
               <Col>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="formGroupEmail">
                   <Form.Label>Região</Form.Label>
                   <Form.Control
                     type="text"
                     placeholder="Região"
                     name="regiao"
-                    value={instituicaoEnsino.regiao}
-                    readOnly
+                    value={instituicaoEnsino.regiao.nome}
+                    onChange={handleChange}
+                    required
                   />
                 </Form.Group>
               </Col>
             </Row>
-
-            <Button
-              variant="warning"
-              onClick={(e) => console.log(instituicaoEnsino)}
-            >
-              Exibir
-            </Button>
+            <Row>
+              <Col sm={3}>
+                <Form.Group className="mb-3" controlId="formGroupEmail">
+                  <Form.Label>Mat. Básico</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Mat. Básico"
+                    name="qt_mat_bas"
+                    value={instituicaoEnsino.qt_mat_bas}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col sm={3}>
+                <Form.Group className="mb-3" controlId="formGroupEmail">
+                  <Form.Label>Mat. Educação Profissional</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Mat. Educação Profissional"
+                    name="qt_mat_prof"
+                    value={instituicaoEnsino.qt_mat_prof}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col sm={3}>
+                <Form.Group className="mb-3" controlId="formGroupEmail">
+                  <Form.Label>
+                    Mat. da Educação de Jovens e Adultos(EJA)
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="EJA"
+                    name="qt_mat_eja"
+                    value={instituicaoEnsino.qt_mat_eja}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col sm={3}>
+                <Form.Group className="mb-3" controlId="formGroupEmail">
+                  <Form.Label>Mat. da Educação Especial</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Mat. Educação Especial"
+                    name="qt_mat_esp"
+                    value={instituicaoEnsino.qt_mat_esp}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={handleShow}>
               Fechar
             </Button>
             <Button variant="danger">Apagar</Button>
-            <Button type="submit" variant="primary" onClick={handleShow}>
+            <Button type="submit" variant="primary">
               Salvar
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
+      {/* Toast */}
+      <ToastContainer />
     </Container>
   );
 };

@@ -1,7 +1,15 @@
-import Main from "../components/Main"
+import Carrossel from '../components/Carrossel';
+import Cards from '../components/Cards';
 
-function Home() {
-  return <Main/>;
-}
+const Home = () => {
+  return (
+    <>
+      {/* Carrossel de imagens */}
+      <Carrossel />
+
+      <Cards />
+    </>
+  );
+};
 
 export default Home;

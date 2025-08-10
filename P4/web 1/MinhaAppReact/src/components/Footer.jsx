@@ -1,55 +1,46 @@
-import {
-  Container,
-  Row,
-  Col,
-  Stack,
-  Image,
-  Nav,
-  NavLink,
-} from "react-bootstrap";
+import { Col, Container, Image, Nav, Row, Stack } from 'react-bootstrap';
+import { Link } from 'react-router';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
+import './Footer.css';
 
-function Footer() {
+const Footer = () => {
   return (
-    <footer>
+    <footer style={{ marginTop: 'auto' }} className="fixed-bottom">
       <Container fluid>
-        <Row className="bg-primary text-white">
-          <Col>
-            <Stack>
-              <Image
-              src="
-                https://images.pexels.com/photos/20491768/pexels-photo-20491768/free-photo-of-textura-parede-muro-rocha.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Uma images" 
-                rounded
-                width={150}
-                height={150}
-                />
-                <h2>@dev.run</h2>
-                <p>Componente do rodapé</p>
-
-            </Stack>
+        <Row className="bg-primary text-white p-3">
+          <Col md={4} className="d-flex flex-column align-items-center">
+            <Image
+              src="https://www.shutterstock.com/image-vector/abstract-initial-letter-d-logo-600nw-2055050639.jpg"
+              alt="company logo"
+              rounded
+              width={100}
+              height={100}
+            />
+            <h4 className="mt-3">Censo Escolar</h4>
+            <p>Instituições de ensino no Brasil</p>
           </Col>
-          <Col>
-            <Nav className="flex-column fs-5">
-                <h5 className="text-white">Links úteis</h5>
-                <NavLink href="#" className="text-white">Início</NavLink>
-                <NavLink href="#" className="text-white">Sobre</NavLink>
-                <NavLink href="#" className="text-white">Produtos</NavLink>
-                <NavLink href="#" className="text-white">Trabalhe conosco</NavLink>
 
+          <Col md={4} className="d-flex flex-column align-items-center">
+            <h5>Useful Links</h5>
+            <Nav className="flex-column text-center">
+              <Link to="/" className="text-white">
+                Home
+              </Link>
+              <Link to="/instituicaoensino" className="text-white">
+                Instituição de Ensino
+              </Link>
             </Nav>
           </Col>
-          <Col>
-            <h4>Contato</h4>
-            <p>Email: email@gmail.com</p>
-            <p>Telefone: (12) 2312-1212</p>
 
+          <Col md={4} className="d-flex flex-column align-items-center">
+            <h5>Contact us!</h5>
+            <p>email@fakeemail.com</p>
+            <p>Phone: +1(800)867-5309</p>
           </Col>
         </Row>
       </Container>
     </footer>
   );
-}
+};
 
 export default Footer;
