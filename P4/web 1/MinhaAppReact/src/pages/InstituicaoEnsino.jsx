@@ -47,11 +47,11 @@ const InstituicaoEnsino = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
     // Adicionar os dados na tabela.
-    const novaLista = [...instituicoesEnsino, instituicaoEnsino];
+    const novoComponente = [...instituicoesEnsino, instituicaoEnsino];
 
     // Adicionar os dados no LocalStorage.
-    setInstituicoesEnsino(novaLista);
-    localStorage.setItem("instituicoesEnsino", JSON.stringify(novaLista));
+    setInstituicoesEnsino(novoComponente);
+    localStorage.setItem("instituicoesEnsino", JSON.stringify(novoComponente));
 
     // Fechar o modal.
     handleShow();
