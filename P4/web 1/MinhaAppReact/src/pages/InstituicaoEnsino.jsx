@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from 'react';
 import {
   Button,
   Col,
@@ -7,34 +7,25 @@ import {
   Modal,
   Row,
   Table,
-} from "react-bootstrap";
-import { ToastContainer, toast } from "react-toastify";
-import instituicoesEnsinoDataset from "../datasets/censoescolar";
-import "./InstituicaoEnsino.css";
-import { estadosDataset, getEstadoByCodigo } from "../datasets/estados";
+} from 'react-bootstrap';
+import { ToastContainer, toast } from 'react-toastify';
+import './InstituicaoEnsino.css';
+import { estadosDataset, getEstadoByCodigo } from '../datasets/estados';
 import {
   getMunicipiosByEstado,
   getMunicipioByCodigo,
-} from "../datasets/cidades";
+} from '../datasets/cidades';
 
 const InstituicaoEnsino = () => {
-  const [instituicoesEnsino, setInstituicoesEnsino] = useState([]);
-
-  useEffect(() => {
-    const dadosSalvos = localStorage.getItem("instituicoesEnsino");
-    if (dadosSalvos) {
-      setInstituicoesEnsino(JSON.parse(dadosSalvos));
-    } else {
-      setInstituicoesEnsino([...instituicoesEnsinoDataset]);
-    }
-  }, []);
+  let [instituicoesEnsino, setInstituicoesEnsino] = useState([]);
 
   const [instituicaoEnsino, setInstituicaoEnsino] = useState({
-    codigo: "",
-    nome: "",
-    estado: { codigo: "", nome: "" },
-    municipio: { codigo: "", nome: "" },
-    regiao: { codigo: "", nome: "" },
+    codigo: '',
+    nome: '',
+    estado: { codigo: '', nome: '' },
+    municipio: { codigo: '', nome: '' },
+    regiao: { codigo: '', nome: '' },
+    qt_mat_bas: '',
   });
 
   let [estados, setEstados] = useState(estadosDataset);
@@ -42,22 +33,38 @@ const InstituicaoEnsino = () => {
 
   const [show, setShow] = useState(false);
 
+  useEffect(() => {
+    let instituicoesEnsinoString = localStorage.getItem('instituicoesEnsino');
+    let instituicoesEnsinoJson = JSON.parse(instituicoesEnsinoString) || [];
+    setInstituicoesEnsino([...instituicoesEnsinoJson]);
+  }, []);
+
+  useEffect(() => {
+    console.log(instituicaoEnsino);
+  }, [instituicaoEnsino]);
+
   const handleShow = () => setShow(!show);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     // Adicionar os dados na tabela.
-    const novoComponente = [...instituicoesEnsino, instituicaoEnsino];
+    setInstituicoesEnsino((valoresAnteriores) => {
+      let valoresNovos = [...valoresAnteriores, instituicaoEnsino];
+      return valoresNovos;
+    });
 
     // Adicionar os dados no LocalStorage.
-    setInstituicoesEnsino(novoComponente);
-    localStorage.setItem("instituicoesEnsino", JSON.stringify(novoComponente));
+    localStorage.removeItem('instituicoesEnsino');
+    localStorage.setItem(
+      'instituicoesEnsino',
+      JSON.stringify([...instituicoesEnsino, instituicaoEnsino]),
+    );
 
     // Fechar o modal.
     handleShow();
 
     // Exibir o Toast.
-    toast("Instituição inserida com sucesso!");
+    toast('Instituição inserida com sucesso!');
   };
 
   const handleChangeMunicipio = (event) => {
@@ -72,17 +79,16 @@ const InstituicaoEnsino = () => {
     const { value } = event.target;
     const codigo = value;
     let estado = getEstadoByCodigo(codigo);
-
-    // Região.
-    // if (estado != null) {
-    //   let regiao = estado?.regiao;
-    // }
     let regiao = estado?.regiao;
 
-    // Atualizar a instituição de ensino com estado e regiao selecionado.
-    setInstituicaoEnsino({ ...instituicaoEnsino, estado, regiao });
+    // Usando callback para garantir que estamos trabalhando com o estado mais recente
+    setInstituicaoEnsino((prevState) => ({
+      ...prevState,
+      estado,
+      regiao,
+    }));
 
-    // Filtrar as cidades.
+    // Filtrar as cidades
     let municipiosSelecionados = getMunicipiosByEstado(codigo);
     setMunicipios([...municipiosSelecionados]);
   };
@@ -99,7 +105,7 @@ const InstituicaoEnsino = () => {
         <Col sm={4}>
           <Button
             variant="primary"
-            style={{ float: "right" }}
+            style={{ float: 'right' }}
             onClick={handleShow}
           >
             +
@@ -180,36 +186,40 @@ const InstituicaoEnsino = () => {
             </Row>
             <Row>
               <Col>
-                <label htmlFor="estado">Estado</label>
-                <select
-                  id="estado"
-                  name="estado"
-                  value={instituicaoEnsino.estado.codigo}
-                  onChange={handleChangeEstado}
-                >
-                  <option value="">-</option>
-                  {estados.map((estado, i) => (
-                    <option key={i} value={estado.codigo}>
-                      {estado.nome}
-                    </option>
-                  ))}
-                </select>
+                <Form.Group className="mb-3" controlId="estado">
+                  <Form.Label>Estado</Form.Label>
+                  <Form.Select
+                    id="estado"
+                    name="estado"
+                    value={instituicaoEnsino.estado.codigo}
+                    onChange={handleChangeEstado}
+                  >
+                    <option value="">-</option>
+                    {estados.map((estado, i) => (
+                      <option key={i} value={estado.codigo}>
+                        {estado.nome}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
               </Col>
               <Col>
-                <label htmlFor="municipio">Municípios</label>
-                <select
-                  id="municipio"
-                  name="municipio"
-                  value={instituicaoEnsino.municipio.codigo}
-                  onChange={handleChangeMunicipio}
-                >
-                  <option value="">-</option>
-                  {municipios.map((municipio, i) => (
-                    <option key={i} value={String(municipio.codigo)}>
-                      {municipio.nome}
-                    </option>
-                  ))}
-                </select>
+                <Form.Group className="mb-3" controlId="municipio">
+                  <Form.Label>Município</Form.Label>
+                  <Form.Select
+                    id="municipio"
+                    name="municipio"
+                    value={instituicaoEnsino.municipio.codigo}
+                    onChange={handleChangeMunicipio}
+                  >
+                    <option value="">-</option>
+                    {municipios.map((municipio, i) => (
+                      <option key={i} value={String(municipio.codigo)}>
+                        {municipio.nome}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
               </Col>
               <Col>
                 <Form.Group className="mb-3" controlId="formGroupEmail">
@@ -228,53 +238,12 @@ const InstituicaoEnsino = () => {
             <Row>
               <Col sm={3}>
                 <Form.Group className="mb-3" controlId="formGroupEmail">
-                  <Form.Label>Mat. Básico</Form.Label>
+                  <Form.Label>Matrícula Básica</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Mat. Básico"
+                    placeholder="Matrícula Básica"
                     name="qt_mat_bas"
                     value={instituicaoEnsino.qt_mat_bas}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col sm={3}>
-                <Form.Group className="mb-3" controlId="formGroupEmail">
-                  <Form.Label>Mat. Educação Profissional</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Mat. Educação Profissional"
-                    name="qt_mat_prof"
-                    value={instituicaoEnsino.qt_mat_prof}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col sm={3}>
-                <Form.Group className="mb-3" controlId="formGroupEmail">
-                  <Form.Label>
-                    Mat. da Educação de Jovens e Adultos(EJA)
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="EJA"
-                    name="qt_mat_eja"
-                    value={instituicaoEnsino.qt_mat_eja}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col sm={3}>
-                <Form.Group className="mb-3" controlId="formGroupEmail">
-                  <Form.Label>Mat. da Educação Especial</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Mat. Educação Especial"
-                    name="qt_mat_esp"
-                    value={instituicaoEnsino.qt_mat_esp}
                     onChange={handleChange}
                     required
                   />
