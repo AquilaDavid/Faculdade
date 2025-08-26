@@ -1,42 +1,66 @@
 import pandas as pd
 import json
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+# Arquivos
+ARQUIVO_CSV = "microdados_ed_basica_2023.csv"
+ARQUIVO_JSON = "instituicoes_paraiba.json"
 
-# --- 1. Carregar o arquivo CSV ---
-dados_csv = pd.read_csv("microdados_ed_basica_2023.csv", sep=";", encoding="latin1", low_memory=False)
+# === Carregar microdados ===
+print("Carregando dados...")
+df = pd.read_csv(ARQUIVO_CSV, sep=";", encoding="latin1", low_memory=False)
 
-# --- 2. Filtrar apenas as escolas da Paraíba ---
-dados_paraiba = dados_csv.query("NO_UF == 'Paraíba'").copy()
+# === Filtrar apenas instituições da Paraíba (UF = 25) ===
+df_pb = df[df["CO_UF"] == 25]
 
-print(dados_paraiba.head())  # mostra as primeiras linhas
-print("Número de instituições na Paraíba:", len(dados_paraiba))
+# === Selecionar colunas relevantes ===
+colunas = [
+    "CO_ENTIDADE", "NO_ENTIDADE",
+    "CO_UF", "NO_UF",
+    "CO_MUNICIPIO", "NO_MUNICIPIO",
+    "CO_REGIAO", "NO_REGIAO",
+    "QT_MAT_BAS", "QT_MAT_PROF", "QT_MAT_EJA", "QT_MAT_ESP"
+]
 
-# --- 3. Tratar valores nulos na quantidade de matrículas ---
-dados_paraiba["QT_MAT_BAS"] = dados_paraiba["QT_MAT_BAS"].fillna(0).astype(int)
+df_pb = df_pb[colunas]
 
-# --- 4. Renomear colunas para nomes mais amigáveis ---
-dados_paraiba = dados_paraiba.rename(columns={
-    "NO_ENTIDADE": "nome_escola",
-    "QT_MAT_BAS": "qtd_matriculas_basico",
-    "CO_UF": "codigo_estado",
-    "NO_UF": "nome_estado",
-    "NO_MUNICIPIO": "cidade",
-    "NO_MESORREGIAO": "mesorregiao",
-    "NO_MICRORREGIAO": "microrregiao"
-})
+# === Remover duplicados (se houver mais de um registro por instituição) ===
+# Somando matrículas por instituição
+df_grouped = df_pb.groupby([
+    "CO_ENTIDADE", "NO_ENTIDADE",
+    "CO_UF", "NO_UF",
+    "CO_MUNICIPIO", "NO_MUNICIPIO",
+    "CO_REGIAO", "NO_REGIAO"
+], as_index=False).sum(numeric_only=True)
 
-# --- 5. Transformar em lista de dicionários ---
-escolas_paraiba = dados_paraiba[[
-    "nome_escola",
-    "qtd_matriculas_basico",
-    "codigo_estado",
-    "nome_estado",
-    "cidade",
-    "mesorregiao",
-    "microrregiao"
-]].to_dict(orient="records")
+# === Montar lista no formato JSON esperado ===
+instituicoes = []
 
-# --- 6. Salvar em JSON ---
-with open("escolas_paraiba.json", "w", encoding="utf-8") as arquivo_json:
-    json.dump(escolas_paraiba, arquivo_json, ensure_ascii=False, indent=4)
+for _, row in df_grouped.iterrows():
+    instituicao = {
+        "codigo": str(row["CO_ENTIDADE"]),
+        "nome": row["NO_ENTIDADE"],
+        "estado": {
+            "codigo": str(row["CO_UF"]),
+            "nome": row["NO_UF"]
+        },
+        "municipio": {
+            "codigo": str(row["CO_MUNICIPIO"]),
+            "nome": row["NO_MUNICIPIO"]
+        },
+        "regiao": {
+            "codigo": str(row["CO_REGIAO"]),
+            "nome": row["NO_REGIAO"]
+        },
+        "qt_mat_bas": int(row["QT_MAT_BAS"]),
+        "qt_mat_prof": int(row["QT_MAT_PROF"]),
+        "qt_mat_eja": int(row["QT_MAT_EJA"]),
+        "qt_mat_esp": int(row["QT_MAT_ESP"])
+    }
+    instituicoes.append(instituicao)
 
-print("Arquivo JSON criado com sucesso!")
+# === Exportar para JSON ===
+with open(ARQUIVO_JSON, "w", encoding="utf-8") as f:
+    json.dump(instituicoes, f, ensure_ascii=False, indent=2)
+
+print(f"✅ Arquivo {ARQUIVO_JSON} gerado com sucesso!")
