@@ -46,6 +46,14 @@ export default function TabLayout() {
   }}
 />
 
+<Tabs.Screen
+  name="emissora"
+  options={{
+    title: 'Emissoras Cadastradas',
+    tabBarIcon: ({ color }) => <IconSymbol size={28} name="newspaper.fill" color={color} />,
+  }}
+/>
+
     </Tabs>
   );
 }
