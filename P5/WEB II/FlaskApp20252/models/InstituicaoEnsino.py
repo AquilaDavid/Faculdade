@@ -74,7 +74,10 @@ lista_instituicoes = carregar_dados()
 if not lista_instituicoes:
     primeira_instituicao = InstituicaoEnsino(
         "25000012", "EMEF JOAO ALVES",
-        25, "2501005", 779, 0, 104, 43
+        "25", "Paraíba",
+        "2501005", "Guarabira",
+        "2", "Nordeste",
+        104, 43, 12, 5
     )
     lista_instituicoes.append(primeira_instituicao)
     salvar_arquivo_json(lista_instituicoes)
