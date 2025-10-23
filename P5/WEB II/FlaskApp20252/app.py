@@ -1,26 +1,33 @@
 from flask import Flask, request, jsonify
-from models.InstituicaoEnsino import InstituicaoEnsino, lista_instituicoes
+from models.InstituicaoEnsino import InstituicaoEnsino, lista_instituicoes, salvar_arquivo_json
 from models.Usuario import Usuario, carregar_usuarios, salvar_usuarios
-import json
 
 app = Flask(__name__)
 
 usuarios = carregar_usuarios()
+
 
 @app.get("/")
 def index():
     return '{"versao":"2.0.0"}', 200
 
 
+# INSTITUIÇÕES 
+
 @app.get("/instituicoesensino")
 def get_instituicoes_ensino():
     instituicoes_json = [i.to_json() for i in lista_instituicoes]
     return jsonify(instituicoes_json), 200
 
+
 @app.get("/instituicoesensino/<int:id>")
 def get_instituicao_ensino_por_id(id: int):
-    instituicao_json = lista_instituicoes[id].to_json()
-    return jsonify(instituicao_json), 200
+    if 0 <= id < len(lista_instituicoes):
+        instituicao_json = lista_instituicoes[id].to_json()
+        return jsonify(instituicao_json), 200
+    else:
+        return jsonify({"erro": "Instituição não encontrada"}), 404
+
 
 @app.post("/instituicoesensino")
 def adicionar_instituicao_ensino():
@@ -40,6 +47,7 @@ def adicionar_instituicao_ensino():
         matriculas_especiais=data.get("matriculas_especiais", 0)
     )
     lista_instituicoes.append(inst)
+    salvar_arquivo_json(lista_instituicoes)
     return inst.to_json(), 201
 
 
@@ -48,6 +56,7 @@ def atualizar_instituicao_ensino(id: int):
     if 0 <= id < len(lista_instituicoes):
         data = request.get_json()
         inst = lista_instituicoes[id]
+
         inst.codigo_instituicao = data.get("codigo_instituicao", inst.codigo_instituicao)
         inst.nome_instituicao = data.get("nome_instituicao", inst.nome_instituicao)
         inst.codigo_estado = data.get("codigo_estado", inst.codigo_estado)
@@ -60,6 +69,8 @@ def atualizar_instituicao_ensino(id: int):
         inst.matriculas_profissionalizante = data.get("matriculas_profissionalizante", inst.matriculas_profissionalizante)
         inst.matriculas_eja = data.get("matriculas_eja", inst.matriculas_eja)
         inst.matriculas_especiais = data.get("matriculas_especiais", inst.matriculas_especiais)
+
+        salvar_arquivo_json(lista_instituicoes)
         return inst.to_json(), 200
     else:
         return {"error": "Instituição não encontrada"}, 404
@@ -69,11 +80,13 @@ def atualizar_instituicao_ensino(id: int):
 def deletar_instituicao_ensino(id: int):
     if 0 <= id < len(lista_instituicoes):
         instituicao_removida = lista_instituicoes.pop(id)
+        salvar_arquivo_json(lista_instituicoes)
         return instituicao_removida.to_json(), 200
     else:
         return {"error": "Instituição não encontrada"}, 404
 
-## Adicionando o CRUD para Usuários
+
+# USUÁRIOS 
 
 @app.get("/usuarios")
 def get_usuarios():
@@ -95,6 +108,20 @@ def adicionar_usuario():
     usuarios.append(novo)
     salvar_usuarios(usuarios)
     return jsonify(novo.to_json()), 201
+
+
+@app.put("/usuarios/<int:id>")
+def atualizar_usuario(id: int):
+    usuario = next((u for u in usuarios if u.id_usuario == id), None)
+    if not usuario:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+
+    data = request.get_json()
+    usuario.nome = data.get("nome", usuario.nome)
+    usuario.cpf = data.get("cpf", usuario.cpf)
+    usuario.nascimento = data.get("nascimento", usuario.nascimento)
+    salvar_usuarios(usuarios)
+    return jsonify(usuario.to_json()), 200
 
 
 @app.delete("/usuarios/<int:id>")

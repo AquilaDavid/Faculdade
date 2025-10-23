@@ -1,0 +1,8 @@
+[
+    {
+        "id_usuario": 1,
+        "nome": "Usuário Padrão",
+        "cpf": "00000000000",
+        "nascimento": "2000-01-01"
+    }
+]
