@@ -1,156 +1,234 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Modal, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Emissora {
-  id: number;
   nome: string;
   cidade: string;
-  tipo: string;
+  tipo?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  enderecoCompleto?: string;
 }
 
-export default function EmissorasScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-
-  const [emissoras, setEmissoras] = useState<Emissora[]>([
-    { id: 1, nome: 'TSI News FM', cidade: 'Guarabira - PB', tipo: 'Rádio' },
-  ]);
-
+export default function Emissora() {
+  const [emissoras, setEmissoras] = useState<Emissora[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [nome, setNome] = useState('');
   const [cidade, setCidade] = useState('');
   const [tipo, setTipo] = useState('');
-  const [editando, setEditando] = useState<Emissora | null>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  // Criar nova emissora
-  const adicionarEmissora = () => {
-    if (!nome.trim() || !cidade.trim() || !tipo.trim()) return;
-
-    const novaEmissora: Emissora = {
-      id: emissoras.length + 1,
-      nome,
-      cidade,
-      tipo,
-    };
-
-    setEmissoras([...emissoras, novaEmissora]);
-    limparCampos();
+  // Carregar emissoras do AsyncStorage
+  const carregar = async () => {
+    try {
+      const armazenadas = await AsyncStorage.getItem('emissoras');
+      if (armazenadas) setEmissoras(JSON.parse(armazenadas));
+      else setEmissoras([]);
+    } catch (error) {
+      console.error('Erro ao carregar emissoras:', error);
+    }
   };
 
-  // Editar emissora
-  const editarEmissora = (item: Emissora) => {
-    setEditando(item);
-    setNome(item.nome);
-    setCidade(item.cidade);
-    setTipo(item.tipo);
+  // Atualiza ao focar a tela
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [])
+  );
+
+  // Obter localização atual
+  const obterLocalizacao = async (): Promise<{
+    enderecoCompleto?: string;
+    latitude?: number;
+    longitude?: number;
+  }> => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada', 'Ative o GPS para registrar a localização.');
+        return {};
+      }
+
+      const pos = await Location.getCurrentPositionAsync({});
+      const [endereco] = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+
+      const enderecoCompleto = endereco
+        ? `${endereco.city ?? ''} - ${endereco.region ?? ''}`
+        : `${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}`;
+
+      return {
+        enderecoCompleto,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      };
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      return {};
+    }
+  };
+
+  // Abrir modal para novo cadastro
+  const abrirNovo = () => {
+    setEditIndex(null);
+    setNome('');
+    setCidade('');
+    setTipo('');
     setModalVisible(true);
   };
 
-  // Salvar edição
-  const salvarEdicao = () => {
-    if (!editando) return;
+  // Abrir modal para editar
+  const abrirEditar = (index: number) => {
+    const item = emissoras[index];
+    setNome(item.nome ?? '');
+    setCidade(item.cidade ?? '');
+    setTipo(item.tipo ?? '');
+    setEditIndex(index);
+    setModalVisible(true);
+  };
 
-    const atualizadas = emissoras.map((e) =>
-      e.id === editando.id ? { ...e, nome, cidade, tipo } : e
-    );
+  // Salvar nova ou editar existente
+  const salvar = async () => {
+    if (!nome.trim()) return;
+
+    const atualizadas = [...emissoras];
+
+    if (editIndex !== null) {
+      // Editando
+      atualizadas[editIndex] = {
+        ...atualizadas[editIndex],
+        nome,
+        cidade,
+        tipo,
+      };
+      setEditIndex(null);
+    } else {
+      // Nova emissora com localização
+      const { enderecoCompleto, latitude, longitude } = await obterLocalizacao();
+      const novaEmissora: Emissora = {
+        nome,
+        cidade: enderecoCompleto ?? cidade,
+        tipo,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        enderecoCompleto,
+      };
+      atualizadas.push(novaEmissora);
+    }
+
     setEmissoras(atualizadas);
-    limparCampos();
-  };
+    try {
+      await AsyncStorage.setItem('emissoras', JSON.stringify(atualizadas));
+    } catch (error) {
+      console.error('Erro ao salvar emissoras:', error);
+    }
 
-  // Excluir emissora
-  const deletarEmissora = (id: number) => {
-    const filtradas = emissoras.filter((e) => e.id !== id);
-    setEmissoras(filtradas);
-  };
-
-  // Limpar modal
-  const limparCampos = () => {
-    setEditando(null);
     setNome('');
     setCidade('');
     setTipo('');
     setModalVisible(false);
   };
 
+  // Excluir emissora
+  const excluir = async (index: number) => {
+    const atualizadas = emissoras.filter((_, i) => i !== index);
+    setEmissoras(atualizadas);
+    try {
+      await AsyncStorage.setItem('emissoras', JSON.stringify(atualizadas));
+    } catch (error) {
+      console.error('Erro ao excluir emissora:', error);
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.header, { color: theme.text }]}>Emissoras Cadastradas</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Emissoras Cadastradas</Text>
 
       <FlatList
         data={emissoras}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={[styles.card, { backgroundColor: theme.background }]}>
-            <Text style={[styles.title, { color: theme.text }]}>{item.nome}</Text>
-            <Text style={[styles.content, { color: theme.text }]}>📍 {item.cidade}</Text>
-            <Text style={[styles.type, { color: theme.tint }]}>🎙️ Tipo: {item.tipo}</Text>
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>🏢 {item.nome}</Text>
+            <Text style={styles.info}>📍 {item.cidade}</Text>
+            {item.tipo ? <Text style={styles.info}>🎙️ {item.tipo}</Text> : null}
+            {item.latitude && item.longitude ? (
+              <Text style={styles.location}>
+                🌎 {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
+              </Text>
+            ) : null}
 
-            {/* Ações */}
             <View style={styles.actions}>
-              <TouchableOpacity onPress={() => editarEmissora(item)}>
-                <Text style={[styles.actionText, { color: theme.tint }]}>Editar</Text>
+              <TouchableOpacity onPress={() => abrirEditar(index)}>
+                <Text style={styles.edit}>✏️ Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deletarEmissora(item.id)}>
-                <Text style={[styles.actionText, { color: 'red' }]}>Excluir</Text>
+              <TouchableOpacity onPress={() => excluir(index)}>
+                <Text style={styles.delete}>🗑 Excluir</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhuma emissora cadastrada.</Text>}
       />
 
-      {/* Botão para adicionar nova emissora */}
-      <TouchableOpacity
-        style={[
-          styles.addButton,
-          { backgroundColor: colorScheme === 'dark' ? '#4A90E2' : theme.tint },
-        ]}
-        onPress={() => setModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={abrirNovo}>
         <Text style={styles.addButtonText}>+ Nova Emissora</Text>
       </TouchableOpacity>
 
       {/* Modal */}
-      <Modal animationType="slide" visible={modalVisible} transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              {editando ? 'Editar Emissora' : 'Cadastrar Emissora'}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {editIndex !== null ? 'Editar Emissora' : 'Nova Emissora'}
             </Text>
 
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+              style={styles.input}
               placeholder="Nome da emissora"
-              placeholderTextColor="#888"
               value={nome}
               onChangeText={setNome}
             />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+              style={styles.input}
               placeholder="Cidade"
-              placeholderTextColor="#888"
               value={cidade}
               onChangeText={setCidade}
             />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+              style={styles.input}
               placeholder="Tipo (TV, Rádio, Online...)"
-              placeholderTextColor="#888"
               value={tipo}
               onChangeText={setTipo}
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: theme.tint }]}
-                onPress={editando ? salvarEdicao : adicionarEmissora}
-              >
-                <Text style={styles.buttonText}>{editando ? 'Atualizar' : 'Salvar'}</Text>
+              <TouchableOpacity style={styles.saveButton} onPress={salvar}>
+                <Text style={styles.buttonText}>{editIndex !== null ? 'Atualizar' : 'Salvar'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: '#999' }]}
-                onPress={limparCampos}
+                style={[styles.saveButton, { backgroundColor: '#ccc' }]}
+                onPress={() => {
+                  setModalVisible(false);
+                  setEditIndex(null);
+                  setNome('');
+                  setCidade('');
+                  setTipo('');
+                }}
               >
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
@@ -163,38 +241,50 @@ export default function EmissorasScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  card: { borderRadius: 10, padding: 14, marginBottom: 10, elevation: 2 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 6 },
-  content: { fontSize: 15, marginBottom: 4 },
-  type: { fontSize: 14, fontStyle: 'italic' },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  actionText: { fontWeight: 'bold' },
-  addButton: {
-    position: 'absolute',
-    bottom: 25,
-    right: 20,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
+  container: { flex: 1, padding: 20, backgroundColor: '#f8f8f8' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 3,
   },
-  addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  modalOverlay: {
+  name: { fontSize: 16, fontWeight: 'bold' },
+  info: { fontSize: 14, color: '#555', marginTop: 4 },
+  location: { fontSize: 13, color: '#333', marginTop: 4 },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  edit: { color: '#0077cc' },
+  delete: { color: '#c00' },
+  addButton: {
+    backgroundColor: '#009933',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 15,
+  },
+  addButtonText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
+  modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  modalContainer: { width: '90%', borderRadius: 10, padding: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 12 },
+  modalContent: {
+    backgroundColor: '#fff',
+    width: '85%',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
-  button: { padding: 10, borderRadius: 8, width: '48%', alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  saveButton: { backgroundColor: '#0066cc', padding: 10, borderRadius: 8, width: '45%' },
+  buttonText: { color: '#fff', textAlign: 'center' },
+  empty: { textAlign: 'center', color: '#666', marginTop: 20 },
 });

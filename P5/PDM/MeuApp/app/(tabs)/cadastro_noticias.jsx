@@ -1,66 +1,49 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
 
-export default function CadastroNoticias() {
+export default function Emissora() {
+  const [emissoras, setEmissoras] = useState([]);
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
 
-  const [titulo, setTitulo] = useState('');
-  const [conteudo, setConteudo] = useState('');
-
-  const salvar = () => {
-    console.log('📰 Nova notícia cadastrada:', { titulo, conteudo });
-    router.back(); // volta para noticias.tsx
-  };
+  useEffect(() => {
+    const carregar = async () => {
+      const armazenadas = await AsyncStorage.getItem('emissoras');
+      if (armazenadas) setEmissoras(JSON.parse(armazenadas));
+    };
+    const unsubscribe = router.addListener('focus', carregar);
+    return unsubscribe;
+  }, [router]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Cadastrar Notícia</Text>
-
-      <TextInput
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        placeholder="Título"
-        placeholderTextColor="#888"
-        value={titulo}
-        onChangeText={setTitulo}
-      />
-      <TextInput
-        style={[
-          styles.input,
-          { borderColor: theme.tint, color: theme.text, height: 100 },
-        ]}
-        placeholder="Conteúdo"
-        placeholderTextColor="#888"
-        multiline
-        value={conteudo}
-        onChangeText={setConteudo}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.tint }]}
-        onPress={salvar}
-      >
-        <Text style={styles.buttonText}>Salvar</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Emissoras Cadastradas</Text>
+      <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(tabs)/cadastro_emissora')}>
+        <Text style={styles.addButtonText}>+ Adicionar Emissora</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#888' }]}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.buttonText}>Cancelar</Text>
-      </TouchableOpacity>
+      <FlatList
+        data={emissoras}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>{item.nome}</Text>
+            <Text style={styles.location}>
+              📍 {item.latitude?.toFixed(3)}, {item.longitude?.toFixed(3)}
+            </Text>
+          </View>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 12 },
-  button: { padding: 12, borderRadius: 8, marginTop: 10, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  container: { flex: 1, padding: 20, backgroundColor: '#f8f8f8' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
+  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8, marginBottom: 10, elevation: 2 },
+  name: { fontSize: 16, fontWeight: 'bold' },
+  location: { fontSize: 14, color: '#555' },
+  addButton: { backgroundColor: '#009933', padding: 10, borderRadius: 8, marginBottom: 10 },
+  addButtonText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
 });

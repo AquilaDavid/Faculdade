@@ -1,147 +1,213 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Modal, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Noticia {
-  id: number;
   titulo: string;
   conteudo: string;
   dataPublicacao: string;
+  localizacao?: string;
 }
 
-export default function NoticiasScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-
-  const [noticias, setNoticias] = useState<Noticia[]>([
-    { id: 1, titulo: 'Mudanças no mercado de tecnologia', conteudo: 'Empresas estão ampliando oportunidades...', dataPublicacao: '08/10/2025' },
-  ]);
-
+export default function Noticias() {
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [conteudo, setConteudo] = useState('');
-  const [editando, setEditando] = useState<Noticia | null>(null); // controla se está editando
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  // ✅ Criar nova notícia
-  const adicionarNoticia = () => {
-    if (titulo.trim() === '' || conteudo.trim() === '') return;
-
-    const novaNoticia: Noticia = {
-      id: noticias.length + 1,
-      titulo,
-      conteudo,
-      dataPublicacao: new Date().toLocaleDateString(),
-    };
-
-    setNoticias([...noticias, novaNoticia]);
-    limparCampos();
+  // Carregar notícias do AsyncStorage
+  const carregar = async () => {
+    try {
+      const armazenadas = await AsyncStorage.getItem('noticias');
+      if (armazenadas) setNoticias(JSON.parse(armazenadas));
+      else setNoticias([]);
+    } catch (error) {
+      console.error('Erro ao carregar notícias:', error);
+    }
   };
 
-  // ✏️ Editar notícia existente
-  const editarNoticia = (item: Noticia) => {
-    setEditando(item); // guarda a notícia atual
-    setTitulo(item.titulo);
-    setConteudo(item.conteudo);
+  // Atualiza ao focar a tela
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [])
+  );
+
+  // Abrir modal para nova notícia
+  const abrirNovo = () => {
+    setEditIndex(null);
+    setTitulo('');
+    setConteudo('');
     setModalVisible(true);
   };
 
-  // 💾 Salvar edição
-  const salvarEdicao = () => {
-    if (!editando) return;
+  // Abrir modal para editar
+  const abrirEditar = (index: number) => {
+    const item = noticias[index];
+    setTitulo(item.titulo ?? '');
+    setConteudo(item.conteudo ?? '');
+    setEditIndex(index);
+    setModalVisible(true);
+  };
 
-    const atualizadas = noticias.map((n) =>
-      n.id === editando.id ? { ...n, titulo, conteudo } : n
-    );
+  // Obter localização atual
+  const obterLocalizacao = async (): Promise<string | undefined> => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada', 'Ative o GPS para registrar a localização.');
+        return undefined;
+      }
+
+      const pos = await Location.getCurrentPositionAsync({});
+      const [endereco] = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+
+      if (endereco) {
+        return `${endereco.city ?? ''} - ${endereco.region ?? ''}`;
+      } else {
+        return `${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}`;
+      }
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      return undefined;
+    }
+  };
+
+  // Salvar nova ou editar existente
+  const salvar = async () => {
+    if (!titulo.trim() || !conteudo.trim()) return;
+
+    const atualizadas = [...noticias];
+
+    if (editIndex !== null) {
+      // Editando
+      atualizadas[editIndex] = {
+        ...atualizadas[editIndex],
+        titulo,
+        conteudo,
+      };
+      setEditIndex(null);
+    } else {
+      // Nova notícia com localização
+      const localizacao = await obterLocalizacao();
+      const novaNoticia: Noticia = {
+        titulo,
+        conteudo,
+        dataPublicacao: new Date().toLocaleString(),
+        localizacao,
+      };
+      atualizadas.push(novaNoticia);
+    }
+
     setNoticias(atualizadas);
-    limparCampos();
-  };
+    try {
+      await AsyncStorage.setItem('noticias', JSON.stringify(atualizadas));
+    } catch (error) {
+      console.error('Erro ao salvar notícia:', error);
+    }
 
-  // ❌ Deletar notícia
-  const deletarNoticia = (id: number) => {
-    const filtradas = noticias.filter((n) => n.id !== id);
-    setNoticias(filtradas);
-  };
-
-  // 🔄 Função auxiliar para limpar tudo
-  const limparCampos = () => {
-    setEditando(null);
     setTitulo('');
     setConteudo('');
     setModalVisible(false);
   };
 
+  // Excluir notícia
+  const excluir = async (index: number) => {
+    const atualizadas = noticias.filter((_, i) => i !== index);
+    setNoticias(atualizadas);
+    try {
+      await AsyncStorage.setItem('noticias', JSON.stringify(atualizadas));
+    } catch (error) {
+      console.error('Erro ao excluir notícia:', error);
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.header, { color: theme.text }]}>Notícias Recentes</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Notícias Publicadas</Text>
 
       <FlatList
         data={noticias}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={[styles.card, { backgroundColor: theme.background }]}>
-            <Text style={[styles.title, { color: theme.text }]}>{item.titulo}</Text>
-            <Text style={[styles.content, { color: theme.text }]}>{item.conteudo}</Text>
-            <Text style={[styles.date, { color: theme.tint }]}>{item.dataPublicacao}</Text>
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>{item.titulo}</Text>
+            <Text style={styles.content}>{item.conteudo}</Text>
+            <Text style={styles.date}>🕒 {item.dataPublicacao}</Text>
+            {item.localizacao ? (
+              <Text style={styles.location}>📍 {item.localizacao}</Text>
+            ) : null}
 
-            {/* Ações */}
             <View style={styles.actions}>
-              <TouchableOpacity onPress={() => editarNoticia(item)}>
-                <Text style={[styles.actionText, { color: theme.tint }]}>Editar</Text>
+              <TouchableOpacity onPress={() => abrirEditar(index)}>
+                <Text style={styles.edit}>✏️ Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deletarNoticia(item.id)}>
-                <Text style={[styles.actionText, { color: 'red' }]}>Excluir</Text>
+              <TouchableOpacity onPress={() => excluir(index)}>
+                <Text style={styles.delete}>🗑 Excluir</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Nenhuma notícia cadastrada ainda.</Text>
+        }
       />
 
-      {/* Botão para abrir modal */}
-      <TouchableOpacity
-        style={[
-          styles.addButton,
-          { backgroundColor: colorScheme === 'dark' ? '#4A90E2' : theme.tint },
-        ]}
-        onPress={() => setModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={abrirNovo}>
         <Text style={styles.addButtonText}>+ Nova Notícia</Text>
       </TouchableOpacity>
 
-      {/* Modal para criar/editar notícia */}
-      <Modal animationType="slide" visible={modalVisible} transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              {editando ? 'Editar Notícia' : 'Cadastrar Notícia'}
+      {/* Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {editIndex !== null ? 'Editar Notícia' : 'Nova Notícia'}
             </Text>
 
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+              style={styles.input}
               placeholder="Título"
-              placeholderTextColor="#888"
               value={titulo}
               onChangeText={setTitulo}
             />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.tint, height: 100 }]}
+              style={[styles.input, { height: 100 }]}
               placeholder="Conteúdo"
-              placeholderTextColor="#888"
               multiline
               value={conteudo}
               onChangeText={setConteudo}
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: theme.tint }]}
-                onPress={editando ? salvarEdicao : adicionarNoticia}
-              >
-                <Text style={styles.buttonText}>{editando ? 'Atualizar' : 'Salvar'}</Text>
+              <TouchableOpacity style={styles.saveButton} onPress={salvar}>
+                <Text style={styles.buttonText}>
+                  {editIndex !== null ? 'Atualizar' : 'Salvar'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: '#999' }]}
-                onPress={limparCampos}
+                style={[styles.saveButton, { backgroundColor: '#ccc' }]}
+                onPress={() => {
+                  setModalVisible(false);
+                  setEditIndex(null);
+                  setTitulo('');
+                  setConteudo('');
+                }}
               >
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
@@ -154,33 +220,51 @@ export default function NoticiasScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  card: { borderRadius: 10, padding: 14, marginBottom: 10, elevation: 2 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 6 },
-  content: { fontSize: 15, marginBottom: 6 },
-  date: { fontSize: 12, fontStyle: 'italic', textAlign: 'right' },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  actionText: { fontWeight: 'bold' },
-  addButton: {
-    position: 'absolute',
-    bottom: 25,
-    right: 20,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
+  container: { flex: 1, padding: 20, backgroundColor: '#f8f8f8' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 3,
   },
-  addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContainer: { width: '90%', borderRadius: 10, padding: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 12 },
+  name: { fontSize: 16, fontWeight: 'bold' },
+  content: { fontSize: 14, color: '#555', marginVertical: 4 },
+  date: { fontSize: 12, color: '#777' },
+  location: { fontSize: 13, color: '#333', marginTop: 3 },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  edit: { color: '#0077cc' },
+  delete: { color: '#c00' },
+  addButton: {
+    backgroundColor: '#0066cc',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 15,
+  },
+  addButtonText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    width: '85%',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
-  button: { padding: 10, borderRadius: 8, width: '48%', alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  saveButton: { backgroundColor: '#0066cc', padding: 10, borderRadius: 8, width: '45%' },
+  buttonText: { color: '#fff', textAlign: 'center' },
+  empty: { textAlign: 'center', color: '#666', marginTop: 20 },
 });

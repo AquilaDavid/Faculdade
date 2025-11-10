@@ -1,70 +1,74 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
 
 export default function CadastroEmissora() {
-  const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-
   const [nome, setNome] = useState('');
-  const [cidade, setCidade] = useState('');
-  const [tipo, setTipo] = useState('');
+  const [localizacao, setLocalizacao] = useState(null);
+  const router = useRouter();
 
-  const salvar = () => {
-    console.log('✅ Emissora cadastrada:', { nome, cidade, tipo });
-    router.back(); // volta para emissora.tsx
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada para acessar localização!');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocalizacao(location.coords);
+    })();
+  }, []);
+
+  const salvarEmissora = async () => {
+    if (!nome) return Alert.alert('Digite o nome da emissora!');
+
+    const novaEmissora = {
+      id: Date.now(),
+      nome,
+      latitude: localizacao?.latitude,
+      longitude: localizacao?.longitude,
+    };
+
+    const armazenadas = await AsyncStorage.getItem('emissoras');
+    const emissoras = armazenadas ? JSON.parse(armazenadas) : [];
+
+    emissoras.push(novaEmissora);
+    await AsyncStorage.setItem('emissoras', JSON.stringify(emissoras));
+
+    Alert.alert('Emissora salva com sucesso!');
+    router.back();
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Cadastrar Emissora</Text>
-
+    <View style={styles.container}>
+      <Text style={styles.title}>Cadastrar Emissora</Text>
       <TextInput
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        placeholder="Nome da emissora"
-        placeholderTextColor="#888"
+        style={styles.input}
+        placeholder="Nome da Emissora"
         value={nome}
         onChangeText={setNome}
       />
-      <TextInput
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        placeholder="Cidade"
-        placeholderTextColor="#888"
-        value={cidade}
-        onChangeText={setCidade}
-      />
-      <TextInput
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        placeholder="Tipo (TV, Rádio...)"
-        placeholderTextColor="#888"
-        value={tipo}
-        onChangeText={setTipo}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.tint }]}
-        onPress={salvar}
-      >
+      <TouchableOpacity style={styles.button} onPress={salvarEmissora}>
         <Text style={styles.buttonText}>Salvar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#888' }]}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.buttonText}>Cancelar</Text>
-      </TouchableOpacity>
+      {localizacao && (
+        <Text style={styles.coords}>
+          Localização: {localizacao.latitude.toFixed(4)}, {localizacao.longitude.toFixed(4)}
+        </Text>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 12 },
-  button: { padding: 12, borderRadius: 8, marginTop: 10, alignItems: 'center' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', width: '100%', padding: 10, borderRadius: 8 },
+  button: { marginTop: 20, backgroundColor: '#009933', padding: 12, borderRadius: 8 },
   buttonText: { color: '#fff', fontWeight: 'bold' },
+  coords: { marginTop: 20, color: '#555' },
 });
