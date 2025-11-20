@@ -14,7 +14,7 @@ import service.ContaResultado;
 import service.ProntuarioFormatter;
 import service.ProntuarioIO;
 
-public class Prontuario {
+public class Prontuario  {
 
 	private String nomePaciente;
 	private Internacao internacao;
