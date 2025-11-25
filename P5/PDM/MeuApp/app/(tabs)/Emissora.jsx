@@ -11,14 +11,14 @@ export default function Emissora() {
 
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => router.push('/(tabs)/cadastro_emissora')}
+        onPress={() => router.push('/(tabs)/emissora')}
       >
         <Text style={styles.addButtonText}>+ Nova Emissora</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.addButton, { backgroundColor: '#0066cc' }]}
-        onPress={() => router.push('/(tabs)/cadastro_noticias')}
+        onPress={() => router.push('/(tabs)/noticias')}
       >
         <Text style={styles.addButtonText}>+ Nova Notícia</Text>
       </TouchableOpacity>
