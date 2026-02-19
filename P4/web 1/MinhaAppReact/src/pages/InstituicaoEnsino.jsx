@@ -17,7 +17,17 @@ import {
 } from '../datasets/cidades';
 
 const InstituicaoEnsino = () => {
-  const [instituicoesEnsino, setInstituicoesEnsino] = useState([]);
+  const [dadosOriginais, setDadosOriginais] = useState([]);
+  const [dadosFiltrados, setDadosFiltrados] = useState([]);
+  const [instituicoes, setInstituicoes] = useState([]);
+
+  const [busca, setBusca] = useState('');
+
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const [editando, setEditando] = useState(false);
 
   const [instituicaoEnsino, setInstituicaoEnsino] = useState({
     codigo: '',
@@ -31,94 +41,138 @@ const InstituicaoEnsino = () => {
     qt_mat_esp: '',
   });
 
-  const [estados, setEstados] = useState(estadosDataset);
+  const [estados] = useState(estadosDataset);
   const [municipios, setMunicipios] = useState([]);
   const [show, setShow] = useState(false);
 
-  // Carregar dados do LocalStorage
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('instituicoesEnsino')) || [];
-    setInstituicoesEnsino(data);
+    fetch('/instituicoes_paraiba.json')
+      .then((response) => response.json())
+      .then((data) => {
+        setDadosOriginais(data);
+        setDadosFiltrados(data);
+        aplicarPaginacao(data, 0, size);
+      })
+      .catch((error) => console.error(error));
   }, []);
 
-  const handleShow = () => setShow(!show);
+  useEffect(() => {
+    aplicarPaginacao(dadosFiltrados, page, size);
+  }, [page, dadosFiltrados]);
 
-  // Salvar instituição
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const aplicarPaginacao = (data, page, size) => {
+    const start = page * size;
+    const end = start + size;
+    const paginado = data.slice(start, end);
 
-    const novasInstituicoes = [...instituicoesEnsino, instituicaoEnsino];
+    setInstituicoes(paginado);
+    setTotalElements(data.length);
+  };
 
-    setInstituicoesEnsino(novasInstituicoes);
-    localStorage.setItem('instituicoesEnsino', JSON.stringify(novasInstituicoes));
+  const totalPages = Math.ceil(totalElements / size);
 
-    toast('Instituição inserida com sucesso!');
-    handleShow();
+  const handleBusca = (valor) => {
+    setBusca(valor);
+    setPage(0);
 
-    // Limpar formulário
-    setInstituicaoEnsino({
-      codigo: '',
-      nome: '',
-      estado: { codigo: '', nome: '' },
-      municipio: { codigo: '', nome: '' },
-      regiao: { codigo: '', nome: '' },
-      qt_mat_bas: '',
-      qt_mat_prof: '',
-      qt_mat_eja: '',
-      qt_mat_esp: '',
+    if (!valor) {
+      setDadosFiltrados(dadosOriginais);
+      return;
+    }
+
+    const buscaLower = valor.toLowerCase();
+
+    const filtrado = dadosOriginais.filter((inst) => {
+      return (
+        inst.nome?.toLowerCase().includes(buscaLower) ||
+        inst.municipio?.nome?.toLowerCase().includes(buscaLower) ||
+        inst.regiao?.codigo?.toString().includes(valor)
+      );
     });
-    setMunicipios([]);
+
+    setDadosFiltrados(filtrado);
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setInstituicaoEnsino({ ...instituicaoEnsino, [name]: value });
+    setInstituicaoEnsino((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleChangeEstado = (event) => {
     const codigo = event.target.value;
     const estado = getEstadoByCodigo(codigo);
     const regiao = estado?.regiao || { codigo: '', nome: '' };
+
+    const municipiosSelecionados = getMunicipiosByEstado(codigo);
+
     setInstituicaoEnsino((prev) => ({
       ...prev,
       estado,
       regiao,
-      municipio: { codigo: '', nome: '' }, // Resetar município ao mudar estado
+      municipio: { codigo: '', nome: '' },
     }));
-    const municipiosSelecionados = getMunicipiosByEstado(codigo);
+
     setMunicipios(municipiosSelecionados);
   };
 
   const handleChangeMunicipio = (event) => {
     const codigo = event.target.value;
     const municipio = getMunicipioByCodigo(codigo);
+
     setInstituicaoEnsino((prev) => ({
       ...prev,
       municipio,
     }));
   };
 
-  // Apagar instituição
-  const handleDelete = (codigo) => {
-    const filtradas = instituicoesEnsino.filter((i) => i.codigo !== codigo);
-    setInstituicoesEnsino(filtradas);
-    localStorage.setItem('instituicoesEnsino', JSON.stringify(filtradas));
-    toast('Instituição apagada com sucesso!');
+  const handleEditar = (inst) => {
+    setInstituicaoEnsino(inst);
+    setEditando(true);
+    setShow(true);
+
+    const municipiosSelecionados = getMunicipiosByEstado(
+      inst.estado?.codigo
+    );
+    setMunicipios(municipiosSelecionados);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (editando) {
+      const atualizado = dadosOriginais.map((inst) =>
+        inst.codigo === instituicaoEnsino.codigo
+          ? instituicaoEnsino
+          : inst
+      );
+
+      setDadosOriginais(atualizado);
+      setDadosFiltrados(atualizado);
+
+      toast('Instituição atualizada com sucesso!');
+    }
+
+    setShow(false);
+    setEditando(false);
   };
 
   return (
     <Container className="mt-2">
-      <Row>
-        <Col sm={8}>Buscar</Col>
-        <Col sm={4}>
-          <Button variant="primary" style={{ float: 'right' }} onClick={handleShow}>
-            +
-          </Button>
+      <Row className="mb-3">
+        <Col sm={8}>
+          <Form.Control
+            type="text"
+            placeholder="Buscar por escola, município ou código da região"
+            value={busca}
+            onChange={(e) => handleBusca(e.target.value)}
+          />
         </Col>
       </Row>
 
-      {/* Tabela */}
-      <Row className="mt-2">
+      <Row>
         <Col>
           <Table striped bordered hover size="sm">
             <thead>
@@ -136,23 +190,28 @@ const InstituicaoEnsino = () => {
               </tr>
             </thead>
             <tbody>
-              {instituicoesEnsino.map((inst, i) => (
+              {instituicoes.map((inst, i) => (
                 <tr key={i}>
                   <td>{inst.codigo}</td>
                   <td>{inst.nome}</td>
-                  <td>{inst.estado.nome}</td>
-                  <td>{inst.municipio.nome}</td>
-                  <td>{inst.regiao.nome}</td>
+                  <td>{inst.estado?.nome}</td>
+                  <td>{inst.municipio?.nome}</td>
+                  <td>{inst.regiao?.nome}</td>
                   <td>{inst.qt_mat_bas}</td>
                   <td>{inst.qt_mat_prof}</td>
                   <td>{inst.qt_mat_eja}</td>
                   <td>{inst.qt_mat_esp}</td>
                   <td>
                     <Button
-                      variant="danger"
+                      variant="warning"
                       size="sm"
-                      onClick={() => handleDelete(inst.codigo)}
+                      className="me-2"
+                      onClick={() => handleEditar(inst)}
                     >
+                      Editar
+                    </Button>
+
+                    <Button variant="danger" size="sm">
                       Apagar
                     </Button>
                   </td>
@@ -160,56 +219,63 @@ const InstituicaoEnsino = () => {
               ))}
             </tbody>
           </Table>
+
+          <div className="d-flex justify-content-center mt-3 gap-3">
+            <Button
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
+              Anterior
+            </Button>
+
+            <span>
+              Página {page + 1} de {totalPages || 1}
+            </span>
+
+            <Button
+              disabled={page + 1 >= totalPages}
+              onClick={() => setPage(page + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
         </Col>
       </Row>
 
-      {/* Modal */}
-      <Modal show={show} onHide={handleShow} dialogClassName="modal-80w">
+      <Modal show={show} onHide={() => setShow(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Instituição de Ensino</Modal.Title>
+          <Modal.Title>Editar Instituição</Modal.Title>
         </Modal.Header>
+
         <Form onSubmit={handleSubmit}>
           <Modal.Body>
-            <Row>
-              <Col sm={3}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Código</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Código"
-                    name="codigo"
-                    value={instituicaoEnsino.codigo}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col sm={9}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nome</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Nome"
-                    name="nome"
-                    value={instituicaoEnsino.nome}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Nome</Form.Label>
+              <Form.Control
+                type="text"
+                name="nome"
+                value={instituicaoEnsino.nome}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
             <Row>
-              <Col>
+              <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Estado</Form.Label>
                   <Form.Select
-                    value={instituicaoEnsino.estado.codigo}
+                    value={instituicaoEnsino.estado?.codigo}
                     onChange={handleChangeEstado}
+                    required
                   >
-                    <option value="">-</option>
-                    {estados.map((estado, i) => (
-                      <option key={i} value={estado.codigo}>
+                    <option value="">Selecione</option>
+                    {estados.map((estado) => (
+                      <option
+                        key={estado.codigo}
+                        value={estado.codigo}
+                      >
                         {estado.nome}
                       </option>
                     ))}
@@ -217,78 +283,81 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
 
-              <Col>
+              <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Município</Form.Label>
                   <Form.Select
-                    value={instituicaoEnsino.municipio.codigo}
+                    value={instituicaoEnsino.municipio?.codigo}
                     onChange={handleChangeMunicipio}
+                    required
                   >
-                    <option value="">-</option>
-                    {municipios.map((municipio, i) => (
-                      <option key={i} value={municipio.codigo}>
+                    <option value="">Selecione</option>
+                    {municipios.map((municipio) => (
+                      <option
+                        key={municipio.codigo}
+                        value={municipio.codigo}
+                      >
                         {municipio.nome}
                       </option>
                     ))}
                   </Form.Select>
                 </Form.Group>
               </Col>
-
-              <Col>
-                <Form.Group className="mb-3">
-                  <Form.Label>Região</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={instituicaoEnsino.regiao.nome}
-                    readOnly
-                  />
-                </Form.Group>
-              </Col>
             </Row>
 
+            <Form.Group className="mb-3">
+              <Form.Label>Região</Form.Label>
+              <Form.Control
+                type="text"
+                value={instituicaoEnsino.regiao?.nome}
+                disabled
+              />
+            </Form.Group>
+
             <Row>
-              <Col sm={3}>
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Matrícula Básico</Form.Label>
+                  <Form.Label>Matrículas Básico</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Matrícula Básico"
+                    type="number"
                     name="qt_mat_bas"
                     value={instituicaoEnsino.qt_mat_bas}
                     onChange={handleChange}
                   />
                 </Form.Group>
               </Col>
-              <Col sm={3}>
+
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Matrícula Profissional</Form.Label>
+                  <Form.Label>Matrículas Profissional</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Matrícula Profissional"
+                    type="number"
                     name="qt_mat_prof"
                     value={instituicaoEnsino.qt_mat_prof}
                     onChange={handleChange}
                   />
                 </Form.Group>
               </Col>
-              <Col sm={3}>
+            </Row>
+
+            <Row>
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Matrícula EJA</Form.Label>
+                  <Form.Label>Matrículas EJA</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Matrícula EJA"
+                    type="number"
                     name="qt_mat_eja"
                     value={instituicaoEnsino.qt_mat_eja}
                     onChange={handleChange}
                   />
                 </Form.Group>
               </Col>
-              <Col sm={3}>
+
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Matrícula Especial</Form.Label>
+                  <Form.Label>Matrículas Especial</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Matrícula Especial"
+                    type="number"
                     name="qt_mat_esp"
                     value={instituicaoEnsino.qt_mat_esp}
                     onChange={handleChange}
@@ -296,16 +365,15 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
             </Row>
+
           </Modal.Body>
+
           <Modal.Footer>
-            <Button variant="secondary" onClick={handleShow}>
-              Fechar
-            </Button>
             <Button
-              variant="danger"
-              onClick={() => handleDelete(instituicaoEnsino.codigo)}
+              variant="secondary"
+              onClick={() => setShow(false)}
             >
-              Apagar
+              Cancelar
             </Button>
             <Button type="submit" variant="primary">
               Salvar
