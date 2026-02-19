@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Button,
   Col,
@@ -7,38 +7,38 @@ import {
   Modal,
   Row,
   Table,
-} from 'react-bootstrap';
-import { ToastContainer, toast } from 'react-toastify';
-import './InstituicaoEnsino.css';
-import { estadosDataset, getEstadoByCodigo } from '../datasets/estados';
+} from "react-bootstrap";
+import { ToastContainer, toast } from "react-toastify";
+import "./InstituicaoEnsino.css";
+import { estadosDataset, getEstadoByCodigo } from "../datasets/estados";
 import {
   getMunicipiosByEstado,
   getMunicipioByCodigo,
-} from '../datasets/cidades';
+} from "../datasets/cidades";
 
 const InstituicaoEnsino = () => {
   const [dadosOriginais, setDadosOriginais] = useState([]);
   const [dadosFiltrados, setDadosFiltrados] = useState([]);
   const [instituicoes, setInstituicoes] = useState([]);
 
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState("");
 
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(5);
   const [totalElements, setTotalElements] = useState(0);
 
   const [editando, setEditando] = useState(false);
 
   const [instituicaoEnsino, setInstituicaoEnsino] = useState({
-    codigo: '',
-    nome: '',
-    estado: { codigo: '', nome: '' },
-    municipio: { codigo: '', nome: '' },
-    regiao: { codigo: '', nome: '' },
-    qt_mat_bas: '',
-    qt_mat_prof: '',
-    qt_mat_eja: '',
-    qt_mat_esp: '',
+    codigo: "",
+    nome: "",
+    estado: { codigo: "", nome: "" },
+    municipio: { codigo: "", nome: "" },
+    regiao: { codigo: "", nome: "" },
+    qt_mat_bas: "",
+    qt_mat_prof: "",
+    qt_mat_eja: "",
+    qt_mat_esp: "",
   });
 
   const [estados] = useState(estadosDataset);
@@ -46,7 +46,7 @@ const InstituicaoEnsino = () => {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    fetch('/instituicoes_paraiba.json')
+    fetch("/instituicoes_paraiba.json")
       .then((response) => response.json())
       .then((data) => {
         setDadosOriginais(data);
@@ -67,6 +67,21 @@ const InstituicaoEnsino = () => {
 
     setInstituicoes(paginado);
     setTotalElements(data.length);
+  };
+
+  const handleApagar = (codigo) => {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta instituição?",
+    );
+
+    if (!confirmar) return;
+
+    const atualizado = dadosOriginais.filter((inst) => inst.codigo !== codigo);
+
+    setDadosOriginais(atualizado);
+    setDadosFiltrados(atualizado);
+
+    toast.success("Instituição removida com sucesso!");
   };
 
   const totalPages = Math.ceil(totalElements / size);
@@ -104,7 +119,7 @@ const InstituicaoEnsino = () => {
   const handleChangeEstado = (event) => {
     const codigo = event.target.value;
     const estado = getEstadoByCodigo(codigo);
-    const regiao = estado?.regiao || { codigo: '', nome: '' };
+    const regiao = estado?.regiao || { codigo: "", nome: "" };
 
     const municipiosSelecionados = getMunicipiosByEstado(codigo);
 
@@ -112,7 +127,7 @@ const InstituicaoEnsino = () => {
       ...prev,
       estado,
       regiao,
-      municipio: { codigo: '', nome: '' },
+      municipio: { codigo: "", nome: "" },
     }));
 
     setMunicipios(municipiosSelecionados);
@@ -133,9 +148,7 @@ const InstituicaoEnsino = () => {
     setEditando(true);
     setShow(true);
 
-    const municipiosSelecionados = getMunicipiosByEstado(
-      inst.estado?.codigo
-    );
+    const municipiosSelecionados = getMunicipiosByEstado(inst.estado?.codigo);
     setMunicipios(municipiosSelecionados);
   };
 
@@ -144,15 +157,13 @@ const InstituicaoEnsino = () => {
 
     if (editando) {
       const atualizado = dadosOriginais.map((inst) =>
-        inst.codigo === instituicaoEnsino.codigo
-          ? instituicaoEnsino
-          : inst
+        inst.codigo === instituicaoEnsino.codigo ? instituicaoEnsino : inst,
       );
 
       setDadosOriginais(atualizado);
       setDadosFiltrados(atualizado);
 
-      toast('Instituição atualizada com sucesso!');
+      toast("Instituição atualizada com sucesso!");
     }
 
     setShow(false);
@@ -211,7 +222,11 @@ const InstituicaoEnsino = () => {
                       Editar
                     </Button>
 
-                    <Button variant="danger" size="sm">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleApagar(inst.codigo)}
+                    >
                       Apagar
                     </Button>
                   </td>
@@ -221,10 +236,7 @@ const InstituicaoEnsino = () => {
           </Table>
 
           <div className="d-flex justify-content-center mt-3 gap-3">
-            <Button
-              disabled={page === 0}
-              onClick={() => setPage(page - 1)}
-            >
+            <Button disabled={page === 0} onClick={() => setPage(page - 1)}>
               Anterior
             </Button>
 
@@ -249,7 +261,6 @@ const InstituicaoEnsino = () => {
 
         <Form onSubmit={handleSubmit}>
           <Modal.Body>
-
             <Form.Group className="mb-3">
               <Form.Label>Nome</Form.Label>
               <Form.Control
@@ -272,10 +283,7 @@ const InstituicaoEnsino = () => {
                   >
                     <option value="">Selecione</option>
                     {estados.map((estado) => (
-                      <option
-                        key={estado.codigo}
-                        value={estado.codigo}
-                      >
+                      <option key={estado.codigo} value={estado.codigo}>
                         {estado.nome}
                       </option>
                     ))}
@@ -293,10 +301,7 @@ const InstituicaoEnsino = () => {
                   >
                     <option value="">Selecione</option>
                     {municipios.map((municipio) => (
-                      <option
-                        key={municipio.codigo}
-                        value={municipio.codigo}
-                      >
+                      <option key={municipio.codigo} value={municipio.codigo}>
                         {municipio.nome}
                       </option>
                     ))}
@@ -365,14 +370,10 @@ const InstituicaoEnsino = () => {
                 </Form.Group>
               </Col>
             </Row>
-
           </Modal.Body>
 
           <Modal.Footer>
-            <Button
-              variant="secondary"
-              onClick={() => setShow(false)}
-            >
+            <Button variant="secondary" onClick={() => setShow(false)}>
               Cancelar
             </Button>
             <Button type="submit" variant="primary">
